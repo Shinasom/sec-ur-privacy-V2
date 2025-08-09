@@ -11,7 +11,7 @@ This is the official repository for the professional refactor of the "Facial Rec
 ## Tech Stack
 
 - **Backend:** Python 3.11+ with Django & Django REST Framework
-- [cite_start]**Database:** MySQL [cite: 113]
+- [cite_start]**Database:** postgreSQL [cite: 113]
 - **Frontend (User App):** React (or Next.js)
 - **Deployment:** Docker & Google Cloud Run
 
