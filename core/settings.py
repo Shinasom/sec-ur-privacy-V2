@@ -122,3 +122,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # --- CORS (FOR REACT FRONTEND) ---
 # For development, we can allow all origins. In production, we'd lock this down.
 CORS_ALLOW_ALL_ORIGINS = True
+
+# --- DJANGO REST FRAMEWORK ---
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
