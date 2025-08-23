@@ -11,7 +11,7 @@ import { MoreHorizontal, Heart, Bookmark } from 'lucide-react';
 export default function Post({ post, uploader }) {
   // Guard against missing data. If the uploader wasn't found in the map,
   // we can choose to render nothing or a fallback state.
-  if (!post || !post.image || !uploader) {
+  if (!post || !post.public_image || !uploader) {
     return null; 
   }
 
@@ -43,7 +43,7 @@ export default function Post({ post, uploader }) {
       {/* Post Image Container */}
       <div className="relative w-full">
         <Image
-          src={post.image}
+          src={post.public_image}
           alt={post.caption || 'A photo by ' + uploader.username}
           width={1200}
           height={900}

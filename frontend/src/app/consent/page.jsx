@@ -1,7 +1,7 @@
 // =======================================================================
 // /src/app/consent/page.jsx
-// This is the final version of the Consent Page. It now fetches and
-// updates live data from your API.
+// This is the final, efficient version. It makes a single API call
+// and relies on the backend to provide all necessary nested data.
 // =======================================================================
 'use client';
 
@@ -16,35 +16,17 @@ export default function ConsentPage() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  // Fetch all necessary data when the component mounts
+  // Fetch data when the component mounts
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
       setLoading(true);
       try {
-        // 1. Fetch all data concurrently for efficiency
-        const [requestsRes, photosRes, usersRes] = await Promise.all([
-          api.get('/api/consent-requests/'),
-          api.get('/api/photos/'),
-          api.get('/api/users/')
-        ]);
+        // 1. Fetch all consent requests with a SINGLE API call.
+        // The backend now provides all the photo and uploader data we need.
+        const requestsRes = await api.get('/api/consent-requests/');
+        setRequests(requestsRes.data);
 
-        // 2. Create lookup maps for easy data access
-        const photosMap = new Map(photosRes.data.map(p => [p.id, p]));
-        const usersMap = new Map(usersRes.data.map(u => [u.username, u]));
-
-        // 3. Combine the data to create rich request objects
-        const enrichedRequests = requestsRes.data.map(req => {
-          const photo = photosMap.get(req.photo);
-          const uploader = usersMap.get(photo?.uploader);
-          return {
-            ...req,
-            photo: { id: photo?.id, imageUrl: photo?.image },
-            uploader: { username: uploader?.username, avatarUrl: uploader?.profile_pic }
-          };
-        });
-
-        setRequests(enrichedRequests);
       } catch (error) {
         console.error("Failed to fetch consent data:", error);
       } finally {
@@ -57,14 +39,11 @@ export default function ConsentPage() {
   // Handles updating the status of a request via a PATCH request
   const handleUpdateRequest = async (id, status) => {
     try {
-      // Optimistically update the UI for a faster user experience
       const originalRequests = requests;
       setRequests(requests.map(r => r.id === id ? { ...r, status } : r));
-
       await api.patch(`/api/consent-requests/${id}/`, { status });
     } catch (error) {
       console.error(`Failed to ${status.toLowerCase()} request:`, error);
-      // If the API call fails, revert the UI change
       setRequests(originalRequests); 
     }
   };
@@ -129,42 +108,48 @@ const TabButton = ({ name, activeTab, onClick, count }) => (
   </button>
 );
 
-const ConsentRequestCard = ({ request, onApprove, onDeny }) => (
-  <div className="bg-gray-50 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-4">
-    <img 
-      src={request.photo?.imageUrl} 
-      alt="Photo preview" 
-      className="w-full sm:w-32 h-32 object-cover rounded-md bg-gray-200" 
-      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/128x128/eee/ccc?text=Image'; }}
-    />
-    
-    <div className="flex-1">
-      <div className="flex items-center mb-2">
-        <img 
-          src={request.uploader?.avatarUrl} 
-          alt={request.uploader?.username} 
-          className="w-8 h-8 rounded-full mr-2 bg-gray-300" 
-          onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/32x32/ccc/999?text=${request.uploader?.username?.charAt(0).toUpperCase() || '?'}`; }}
-        />
-        <p className="text-sm">
-          <span className="font-bold text-gray-800">{request.uploader?.username || 'Someone'}</span>
-          <span className="text-gray-600"> has tagged you in a photo.</span>
+const ConsentRequestCard = ({ request, onApprove, onDeny }) => {
+  // 2. Access the nested data provided by our new, smarter API.
+  const imageUrl = request.photo?.public_image;
+  const uploader = request.photo?.uploader;
+
+  return (
+    <div className="bg-gray-50 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <img 
+        src={imageUrl} 
+        alt="Photo preview" 
+        className="w-full sm:w-32 h-32 object-cover rounded-md bg-gray-200" 
+        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/128x128/eee/ccc?text=Image'; }}
+      />
+      
+      <div className="flex-1">
+        <div className="flex items-center mb-2">
+          <img 
+            src={uploader?.profile_pic} 
+            alt={uploader?.username} 
+            className="w-8 h-8 rounded-full mr-2 bg-gray-300" 
+            onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/32x32/ccc/999?text=${uploader?.username?.charAt(0).toUpperCase() || '?'}`; }}
+          />
+          <p className="text-sm">
+            <span className="font-bold text-gray-800">{uploader?.username || 'Someone'}</span>
+            <span className="text-gray-600"> has tagged you in a photo.</span>
+          </p>
+        </div>
+        <p className="text-xs text-gray-500">
+          Requested on: {new Date(request.created_at).toLocaleDateString()}
         </p>
       </div>
-      <p className="text-xs text-gray-500">
-        Requested on: {new Date(request.created_at).toLocaleDateString()}
-      </p>
-    </div>
 
-    {request.status === 'PENDING' && (
-      <div className="flex items-center gap-2 w-full sm:w-auto">
-        <button onClick={onDeny} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-colors">
-          <X className="w-4 h-4" /> Deny
-        </button>
-        <button onClick={onApprove} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-opacity-90 rounded-lg transition-colors">
-          <Check className="w-4 h-4" /> Approve
-        </button>
-      </div>
-    )}
-  </div>
-);
+      {request.status === 'PENDING' && (
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button onClick={onDeny} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-colors">
+            <X className="w-4 h-4" /> Deny
+          </button>
+          <button onClick={onApprove} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-opacity-90 rounded-lg transition-colors">
+            <Check className="w-4 h-4" /> Approve
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -49,7 +49,9 @@ export default function UploadModal({ onClose }) {
     setError('');
 
     const formData = new FormData();
-    formData.append('image', file);
+    // --- THIS IS THE FIX ---
+    // The key is changed from 'image' to 'original_image' to match the backend serializer.
+    formData.append('original_image', file);
     formData.append('caption', caption);
 
     try {
