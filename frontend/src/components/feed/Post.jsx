@@ -1,70 +1,76 @@
 // =======================================================================
 // /src/components/feed/Post.jsx
-// This component is responsible for rendering a single post in the feed.
-// This version fixes the "Invalid URL" error by using the direct URL
-// from the API without modification.
+// This version is simplified. It receives the full `uploader` object
+// as a prop from the parent Feed component.
 // =======================================================================
 'use client';
 
 import Image from 'next/image';
-import { MoreHorizontal } from 'lucide-react';
-import Card from '@/components/ui/Card';
-import Avatar from '@/components/ui/Avatar';
+import { MoreHorizontal, Heart, Bookmark } from 'lucide-react';
 
-export default function Post({ post }) {
-  // Guard clause to prevent crashes from invalid data.
-  if (!post || !post.image) {
-    return null;
+export default function Post({ post, uploader }) {
+  // Guard against missing data. If the uploader wasn't found in the map,
+  // we can choose to render nothing or a fallback state.
+  if (!post || !post.image || !uploader) {
+    return null; 
   }
 
-  // --- THE FIX ---
-  // The `post.image` from our Django serializer already contains the full URL.
-  // We no longer need to add the baseURL here.
-  const imageUrl = post.image;
-
-  // We still need the baseURL for the placeholder avatar.
-  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
   return (
-    <Card>
+    <div className="bg-surface rounded-xl shadow-lg overflow-hidden">
       {/* Post Header */}
       <div className="flex items-center p-4">
-        <Avatar 
-          src={`${baseURL}/media/profile_pics/default.png`} // Placeholder avatar
-          alt={post.uploader} 
-          className="w-10 h-10" 
+        <img 
+          // We now get the profile_pic from the uploader prop.
+          src={uploader.profile_pic} 
+          alt={uploader.username} 
+          className="w-10 h-10 rounded-full object-cover" 
+          onError={(e) => { 
+            e.target.onerror = null; 
+            e.target.src = `https://placehold.co/40x40/556B2F/F5F3ED?text=${uploader.username.charAt(0).toUpperCase()}`; 
+          }}
         />
         <div className="ml-3">
-          <p className="font-bold text-gray-900 dark:text-white">{post.uploader}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="font-semibold text-sm text-gray-800">{uploader.username}</p>
+          <p className="text-xs text-gray-500">
             {new Date(post.created_at).toLocaleString()}
           </p>
         </div>
-        <button aria-label="More options" className="ml-auto text-gray-400 hover:text-white">
-          <MoreHorizontal />
+        <button className="ml-auto p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+          <MoreHorizontal className="w-5 h-5" />
         </button>
       </div>
 
       {/* Post Image Container */}
-      <div className="relative w-full aspect-square bg-gray-900">
+      <div className="relative w-full">
         <Image
-          src={imageUrl}
-          alt={post.caption || 'A photo by ' + post.uploader}
-          layout="fill"
+          src={post.image}
+          alt={post.caption || 'A photo by ' + uploader.username}
+          width={1200}
+          height={900}
+          layout="responsive"
           objectFit="cover"
           unoptimized 
         />
       </div>
 
-      {/* Post Footer & Caption */}
-      {post.caption && (
-        <div className="p-4">
-          <p className="text-gray-800 dark:text-gray-300">
-            <span className="font-bold text-gray-900 dark:text-white mr-2">{post.uploader}</span>
+      {/* Post Footer */}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+             <p className="font-semibold text-sm text-gray-800">{post.likes || 0} likes</p>
+          </div>
+          <div className="flex items-center space-x-1">
+            <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-red-500 transition-colors"><Heart className="w-5 h-5" /></button>
+            <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-primary transition-colors"><Bookmark className="w-5 h-5" /></button>
+          </div>
+        </div>
+        {post.caption && (
+          <p className="text-gray-700 text-sm">
+            <span className="font-semibold text-gray-800 mr-2">{uploader.username}</span>
             {post.caption}
           </p>
-        </div>
-      )}
-    </Card>
+        )}
+      </div>
+    </div>
   );
 }

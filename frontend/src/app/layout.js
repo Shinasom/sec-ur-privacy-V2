@@ -1,20 +1,31 @@
-// /src/app/layout.js
+// =======================================================================
+// /src/app/layout.jsx
+// This is the final, corrected root layout for your entire application.
+// =======================================================================
 
 import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { Playfair_Display } from "next/font/google";
 import { AuthProvider } from '@/context/AuthContext';
 import "./globals.css";
 
+// Configure the font for the logo from your mockup
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair-display',
+});
+
 export const metadata = {
-  title: "SEC-UR Privacy",
-  description: "The Social Network Built on Consent.",
+  title: "SEC-UR Privacy", // Keeping your app's name
+  description: "Your Photos, Your Consent, Your Network.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    // We remove the "dark" className to default to the light theme
+    <html lang="en">
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} antialiased bg-gray-100 dark:bg-gray-900`}
+        // We combine the font classes and set the new default background color
+        className={`${GeistSans.variable} ${playfair.variable} antialiased bg-background`}
       >
         <AuthProvider>
           {children}
