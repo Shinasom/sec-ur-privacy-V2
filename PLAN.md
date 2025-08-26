@@ -1,70 +1,87 @@
-# SEC-UR Privacy v2 - Project Plan & Roadmap
-
+SEC-UR Privacy v2 - Project Plan & Roadmap (Updated)
 This document outlines the strategic plan, scope, and architecture for the refactor of the SEC-UR Privacy project.
 
-## 1. Primary Goal
-
+1. Primary Goal
 To refactor the legacy codebase into a modern, secure, scalable, and professional full-stack application. The new architecture will follow industry best practices and resolve all identified security vulnerabilities and design flaws of the original implementation.
 
-## 2. Phased Delivery Plan
+2. Current Status (As of August 26, 2025)
+The project is significantly ahead of schedule. The core functionality for the Phase 1 MVP has been successfully implemented and tested across the full stack.
 
-To meet all project requirements before the final December deadline, we will follow a two-phase iterative development plan.
+COMPLETED
+ Backend: Secure User Authentication, Photo Management, Core Consent Workflow (Recognition, Masking, Unmasking), and Admin Panel.
 
----
+COMPLETED
+ Frontend: Component-based UI architecture (Next.js), user registration/login forms, photo upload modal, and live data integration for the main photo feed and consent management pages.
 
-### **Phase 1: The Core MVP (Minimum Viable Product)**
+3. Phased Delivery Plan (Revised)
+With the core features built, the plan is now updated to focus on hardening the MVP and then expanding its social features across both the frontend and backend.
 
-- [cite_start]**Goal:** Deliver a complete, polished, and deployable version of the project that flawlessly demonstrates its core, unique value proposition: privacy-first, consent-based photo sharing[cite: 803, 809].
-- **Target Deadline:** End of October 2025.
-- **Estimated Workload:** 60-75 Hours.
+Phase 1: MVP Hardening & Optimization
+Goal: Evolve the functional MVP into a robust, scalable, and production-ready application by implementing critical performance optimizations and security enhancements.
 
-#### **Scope (In-Scope Features for Phase 1):**
+Revised Target Deadline: Mid-September 2025.
 
-- **Secure User Authentication:**
-  - [cite_start]User Registration with a facial image and secure password hashing[cite: 507, 543].
-  - Secure user login that provides an authentication token for the API.
-- **Photo Management:**
-  - Ability for users to upload a profile picture.
-  - [cite_start]Ability to upload a new photo post to the platform[cite: 509].
-- **Core Consent Workflow:**
-  - [cite_start]Automatic facial recognition on uploaded photos to identify registered users[cite: 512, 513].
-  - [cite_start]Automatic masking of all identified faces by default upon upload[cite: 519].
-  - [cite_start]Automatic creation and sending of `ConsentRequest` notifications to identified users[cite: 514].
-  - A user-facing UI to view pending requests and "Approve" or "Deny" them.
-  - [cite_start]A social feed that displays photos with faces correctly masked or unmasked based on real-time consent status[cite: 522].
-- **Admin Management:**
-  - [cite_start]A secure, automatically generated Django Admin Panel for system management (user review, content moderation, etc.)[cite: 525].
+Estimated Remaining Workload: 15-20 Hours.
 
----
+Scope (Remaining Full-Stack Tasks for Phase 1):
+Asynchronous Task Processing (Backend):
 
-### **Phase 2: Social Feature Expansion**
+Integrate Celery and Redis to move the process_photo_for_faces service to a background task.
 
-- **Goal:** Build upon the stable MVP foundation by adding standard social media features to create a more feature-complete application for the final submission.
-- **Target Deadline:** End of November 2025.
-- **Estimated Workload:** 30-40 Hours.
+Performance Optimization (Backend):
 
-#### **Scope (In-Scope Features for Phase 2):**
+Pre-calculate and store face encodings on the CustomUser model to dramatically speed up face comparisons.
 
-- **Friend/Follower System:**
-  - [cite_start]Ability to send, view, accept, and reject friend requests[cite: 532, 1142, 1143].
-- **Post Engagement:**
-  - [cite_start]Ability to Like and Comment on posts[cite: 529, 531].
-- **Direct Messaging:**
-  - [cite_start]A basic private chat system between connected users[cite: 607, 699].
-- **User Interaction:**
-  - [cite_start]Ability to search for other users on the platform[cite: 526].
-  - [cite_start]A system for users to send feedback or report posts[cite: 657, 1150].
+API Security Hardening (Backend & Frontend):
 
----
+Backend: Refactor the UserViewSet to prevent unauthorized listing or modification of user data.
 
-## 3. High-Level Architecture
+Frontend: Remove all insecure API calls (e.g., /api/users/) from components and rely on data provided by secure, specific endpoints.
 
+Configuration Management (Backend):
+
+Secure the settings.py file by moving secrets to environment variables using python-decouple.
+
+Phase 2: Social Feature Expansion
+Goal: Build upon the stable foundation by adding standard social media features to create a more feature-complete application for the final submission.
+
+Target Deadline: End of October 2025.
+
+Estimated Workload: 30-40 Hours.
+
+Scope (Full-Stack Features for Phase 2):
+Friend/Follower System:
+
+Backend: Create models and API endpoints for sending, viewing, and managing friend requests.
+
+Frontend: Build the UI for searching users, sending requests, and viewing a friend list.
+
+Post Engagement:
+
+Backend: Create models and API endpoints for Likes and Comments.
+
+Frontend: Add like buttons and comment sections to the Post component.
+
+Direct Messaging:
+
+Backend: Implement a basic real-time chat API (e.g., using Django Channels).
+
+Frontend: Build a private messaging interface.
+
+User Interaction:
+
+Backend: Create API endpoints for submitting feedback and reporting posts.
+
+Frontend: Develop UI components for feedback forms and report buttons.
+
+4. High-Level Architecture
 The project is built on a modern, decoupled, three-part architecture:
 
-1.  **Backend API:** A "headless" API built with Django and Django REST Framework. Its only job is to manage data and serve it as JSON.
-2.  **Admin Panel:** Utilizes the built-in Django Admin site for secure, zero-effort system management.
-3.  **User Web App:** A user-facing frontend built with React (using a professional template to accelerate development) that consumes the backend API.
+Backend API: A "headless" API built with Django and Django REST Framework.
 
-## 4. Final Deadline
+Admin Panel: Utilizes the built-in Django Admin site for secure system management.
 
-- **Final Project Submission:** First week of December 2025.
+User Web App: A user-facing frontend built with Next.js that consumes the backend API.
+
+5. Final Deadline
+Final Project Submission: First week of December 2025.
