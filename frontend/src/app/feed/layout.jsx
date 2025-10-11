@@ -1,6 +1,7 @@
 // =======================================================================
 // /src/app/feed/layout.jsx
-// This layout now manages the state for the UploadModal.
+// This version fixes the scrolling issue by applying fixed positioning
+// to the sidebars.
 // =======================================================================
 'use client';
 
@@ -9,34 +10,34 @@ import Sidebar from '@/components/shell/Sidebar';
 import RightSidebar from '@/components/shell/RightSidebar';
 import BottomNav from '@/components/shell/BottomNav';
 import Header from '@/components/shell/Header';
-import UploadModal from '@/components/upload/UploadModal'; // <-- Import the modal
+import UploadModal from '@/components/upload/UploadModal';
 
 export default function AppLayout({ children }) {
-  // State to control the modal's visibility
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-primary">
-      <div className="flex">
-        {/* We pass the function to open the modal down to the Sidebar */}
+      {/* 1. The sidebars are now wrapped in fixed containers */}
+      <div className="fixed left-0 top-0 h-full z-30 hidden md:block">
         <Sidebar onUploadClick={() => setUploadModalOpen(true)} />
-
-        <div className="flex-1 md:pl-64 lg:pr-80">
-          <Header />
-          
-          <main className="flex justify-center p-4 sm:p-6 lg:p-8 pt-24">
-            <div className="w-full max-w-3xl">
-              {children}
-            </div>
-          </main>
-        </div>
-
+      </div>
+      <div className="fixed right-0 top-0 h-full z-30 hidden lg:block">
         <RightSidebar />
+      </div>
+
+      {/* 2. The main content area uses margins to create space for the sidebars */}
+      <div className="flex-1 md:ml-64 lg:mr-80">
+        <Header />
+        
+        <main className="flex justify-center p-4 sm:p-6 lg:p-8 pt-24">
+          <div className="w-full max-w-3xl">
+            {children}
+          </div>
+        </main>
       </div>
       
       <BottomNav />
 
-      {/* Conditionally render the modal based on state */}
       {isUploadModalOpen && <UploadModal onClose={() => setUploadModalOpen(false)} />}
     </div>
   );
