@@ -1,7 +1,8 @@
 // =======================================================================
 // /src/config/nav.js
-// This version removes the "Upload" link from the main navigation
-// to prevent 404 errors, as uploading is now handled by a modal.
+// This version removes the duplicate "Profile" link from the user 
+// navigation to fix the UI bug. The dynamic link in Sidebar.jsx is now
+// the single source of truth.
 // =======================================================================
 import {
   LayoutGrid,
@@ -14,7 +15,6 @@ import {
 } from 'lucide-react';
 
 // Main navigation links for the primary section of the sidebar.
-// The "Upload" link has been removed from this list.
 export const mainNavItems = [
   { icon: LayoutGrid, text: 'Gallery', href: '/feed' },
   { icon: Sparkles, text: 'Discover', href: '/discover' },
@@ -23,8 +23,8 @@ export const mainNavItems = [
 ];
 
 // User-related navigation links for the bottom section of the sidebar.
+// The hardcoded "Profile" link has been removed.
 export const userNavItems = [
-  { icon: User, text: 'Profile', href: '/profile' },
   { icon: Settings, text: 'Settings', href: '/settings' },
 ];
 

@@ -1,6 +1,6 @@
 // =======================================================================
 // /src/app/profile/[username]/page.jsx
-// This is the final version of the profile page, now fetching live data.
+// This version fixes the broken image bug in the PhotoGrid view.
 // =======================================================================
 'use client';
 
@@ -9,43 +9,28 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { Settings, LayoutGrid, List, Loader2 } from 'lucide-react';
-import Post from '@/components/feed/Post'; // <-- Import your real Post component
+import Post from '@/components/feed/Post';
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [photos, setPhotos] = useState([]);
-  const [allUsers, setAllUsers] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('grid');
   const params = useParams();
   const { username } = params;
-  const { user: loggedInUser } = useAuth(); // Get the currently logged-in user
+  const { user: loggedInUser } = useAuth();
 
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!username) return;
       setLoading(true);
       try {
-        // Fetch all users and all photos simultaneously
-        const [usersRes, photosRes] = await Promise.all([
-          api.get('/api/users/'),
-          api.get('/api/photos/')
-        ]);
-
-        // Find the specific user for this profile page
-        const profileUserData = usersRes.data.find(u => u.username === username);
-        setUserProfile(profileUserData);
-
-        // Create a map of all users for the Post component
-        const usersMap = new Map(usersRes.data.map(u => [u.username, u]));
-        setAllUsers(usersMap);
-
-        // Filter photos to only show those by the profile user
-        const userPhotos = photosRes.data.filter(p => p.uploader === username);
-        setPhotos(userPhotos);
-
+        const response = await api.get(`/api/users/profile/${username}/`);
+        setUserProfile(response.data.user);
+        setPhotos(response.data.photos);
       } catch (error) {
         console.error("Failed to fetch profile data:", error);
+        setUserProfile(null);
       } finally {
         setLoading(false);
       }
@@ -83,7 +68,6 @@ export default function ProfilePage() {
           </div>
           <div className="flex justify-center sm:justify-start gap-6 my-4 text-gray-700">
             <span><span className="font-bold">{photos.length}</span> posts</span>
-            {/* Note: Follower/Following counts are not in your API yet, so we'll hide them for now */}
           </div>
           <p className="text-sm text-gray-600 max-w-md">{userProfile.bio}</p>
         </div>
@@ -97,7 +81,7 @@ export default function ProfilePage() {
 
       {/* Photo Content */}
       <div className="bg-surface p-4 rounded-b-xl shadow-lg">
-        {activeTab === 'grid' ? <PhotoGrid photos={photos} /> : <PhotoFeed photos={photos} allUsers={allUsers} />}
+        {activeTab === 'grid' ? <PhotoGrid photos={photos} /> : <PhotoFeed photos={photos} userProfile={userProfile} />}
       </div>
     </div>
   );
@@ -118,18 +102,18 @@ const PhotoGrid = ({ photos }) => (
   <div className="grid grid-cols-3 gap-1">
     {photos.map(photo => (
       <div key={photo.id} className="aspect-square bg-gray-100">
-        <img src={photo.image} alt={photo.caption || 'User post'} className="w-full h-full object-cover" />
+        {/* --- THIS IS THE FIX --- */}
+        <img src={photo.public_image} alt={photo.caption || 'User post'} className="w-full h-full object-cover" />
       </div>
     ))}
   </div>
 );
 
-// This now uses your real <Post> component
-const PhotoFeed = ({ photos, allUsers }) => (
+const PhotoFeed = ({ photos, userProfile }) => (
   <div className="space-y-4 max-w-lg mx-auto">
-    {photos.map(photo => {
-      const uploaderData = allUsers.get(photo.uploader);
-      return <Post key={photo.id} post={photo} uploader={uploaderData} />;
-    })}
+    {photos.map(photo => (
+      <Post key={photo.id} post={photo} uploader={userProfile} />
+    ))}
   </div>
 );
+
