@@ -1,6 +1,7 @@
 // =======================================================================
 // /src/components/shell/Sidebar.jsx
-// The "Upload" item is now a button that opens the modal.
+// The "Profile" link is now dynamically generated to point to the
+// currently logged-in user's profile page.
 // =======================================================================
 'use client';
 
@@ -8,11 +9,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { mainNavItems, userNavItems, logoutNavItem } from '@/config/nav';
-import { PlusSquare } from 'lucide-react';
+import { PlusSquare, User } from 'lucide-react'; // Import User icon
 
 // The component now accepts an `onUploadClick` prop from its parent layout
 export default function Sidebar({ onUploadClick }) {
-  const { logoutUser } = useAuth();
+  const { user, logoutUser } = useAuth(); // Get the full user object
   const pathname = usePathname();
 
   return (
@@ -36,18 +37,27 @@ export default function Sidebar({ onUploadClick }) {
             active={pathname === item.href}
           />
         ))}
-        {/* The Upload item is now a button that triggers the modal */}
         <button onClick={onUploadClick} className="w-full">
            <NavItem
             Icon={PlusSquare}
             text="Upload"
-            active={false} // It's an action, not a page link, so never active
+            active={false}
           />
         </button>
       </nav>
 
       {/* User Navigation & Logout */}
       <div className="px-4 py-6 space-y-2">
+        {/* Dynamically create the Profile link */}
+        {user && (
+          <NavItem
+            Icon={User}
+            text="Profile"
+            href={`/profile/${user.username}`}
+            active={pathname === `/profile/${user.username}`}
+          />
+        )}
+        {/* Map over the rest of the user items (e.g., Settings) */}
         {userNavItems.map((item) => (
           <NavItem
             key={item.text}
