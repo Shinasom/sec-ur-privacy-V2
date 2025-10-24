@@ -1,7 +1,6 @@
 // =======================================================================
 // /src/app/feed/layout.jsx
-// This version fixes the scrolling issue by applying fixed positioning
-// to the sidebars.
+// Updated with background upload notifications
 // =======================================================================
 'use client';
 
@@ -11,13 +10,30 @@ import RightSidebar from '@/components/shell/RightSidebar';
 import BottomNav from '@/components/shell/BottomNav';
 import Header from '@/components/shell/Header';
 import UploadModal from '@/components/upload/UploadModal';
+import UploadToast from '@/components/upload/UploadToast';
 
 export default function AppLayout({ children }) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null);
+
+  const handleUploadStart = (status) => {
+    setUploadStatus(status);
+    
+    // Auto-hide success/error messages after 5 seconds
+    if (status === 'success' || status === 'error') {
+      setTimeout(() => {
+        setUploadStatus(null);
+      }, 5000);
+    }
+  };
+
+  const handleCloseToast = () => {
+    setUploadStatus(null);
+  };
 
   return (
     <div className="min-h-screen bg-background text-primary">
-      {/* 1. The sidebars are now wrapped in fixed containers */}
+      {/* Fixed Sidebars */}
       <div className="fixed left-0 top-0 h-full z-30 hidden md:block">
         <Sidebar onUploadClick={() => setUploadModalOpen(true)} />
       </div>
@@ -25,7 +41,7 @@ export default function AppLayout({ children }) {
         <RightSidebar />
       </div>
 
-      {/* 2. The main content area uses margins to create space for the sidebars */}
+      {/* Main Content */}
       <div className="flex-1 md:ml-64 lg:mr-80">
         <Header />
         
@@ -38,7 +54,21 @@ export default function AppLayout({ children }) {
       
       <BottomNav />
 
-      {isUploadModalOpen && <UploadModal onClose={() => setUploadModalOpen(false)} />}
+      {/* Upload Modal */}
+      {isUploadModalOpen && (
+        <UploadModal 
+          onClose={() => setUploadModalOpen(false)} 
+          onUploadStart={handleUploadStart}
+        />
+      )}
+
+      {/* Upload Toast Notification */}
+      {uploadStatus && (
+        <UploadToast 
+          status={uploadStatus} 
+          onClose={handleCloseToast}
+        />
+      )}
     </div>
   );
 }

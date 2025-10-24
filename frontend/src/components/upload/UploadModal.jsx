@@ -1,6 +1,6 @@
 // =======================================================================
 // /src/components/upload/UploadModal.jsx
-// Updated to combine caption, location, and tags into description field
+// Updated with background upload and toast notifications
 // =======================================================================
 'use client';
 
@@ -20,17 +20,16 @@ import {
   MessageSquare
 } from 'lucide-react';
 
-export default function UploadModal({ onClose }) {
+export default function UploadModal({ onClose, onUploadStart }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState(1); // 1: Upload, 2: Edit & Details
+  const [step, setStep] = useState(1);
   const [filter, setFilter] = useState('none');
   
   const fileInputRef = useRef(null);
@@ -52,7 +51,7 @@ export default function UploadModal({ onClose }) {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
       setError('');
-      setStep(2); // Move to edit step
+      setStep(2);
     } else {
       setError('Please select a valid image file.');
     }
@@ -83,46 +82,48 @@ export default function UploadModal({ onClose }) {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  // Function to build the complete description with caption, location, and tags
   const buildDescription = () => {
     let description = caption.trim();
-    
-    // Add location if provided
     if (location.trim()) {
       description += `\n\n📍 ${location.trim()}`;
     }
-    
-    // Add tags if provided
     if (tags.length > 0) {
       description += `\n\n${tags.map(tag => `#${tag}`).join(' ')}`;
     }
-    
     return description;
   };
 
   const handleShare = async () => {
     if (!file) return;
-    setIsUploading(true);
-    setError('');
 
     const formData = new FormData();
     formData.append('original_image', file);
-    
-    // Combine caption, location, and tags into the description field
     const fullDescription = buildDescription();
     formData.append('caption', fullDescription);
 
+    // Close modal immediately and start background upload
+    onClose();
+    onUploadStart('uploading');
+
     try {
+      // Simulate processing phase (you can remove this if not needed)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      onUploadStart('processing');
+      
       await api.post('/api/photos/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      onClose();
-      router.refresh();
+      
+      onUploadStart('success');
+      
+      // Refresh the feed after a short delay
+      setTimeout(() => {
+        router.refresh();
+      }, 1000);
+      
     } catch (err) {
       console.error('Upload failed:', err);
-      setError(err.response?.data?.detail || err.response?.data?.caption?.[0] || 'Upload failed. Please try again.');
-    } finally {
-      setIsUploading(false);
+      onUploadStart('error');
     }
   };
 
@@ -144,7 +145,6 @@ export default function UploadModal({ onClose }) {
     };
   }, [preview]);
 
-  // Calculate the preview of the full description
   const descriptionPreview = buildDescription();
 
   return (
@@ -365,17 +365,10 @@ export default function UploadModal({ onClose }) {
               <div className="mt-auto pt-4 border-t">
                 <button 
                   onClick={handleShare} 
-                  disabled={isUploading || !file} 
+                  disabled={!file} 
                   className="w-full bg-gradient-to-r from-primary to-dark-accent text-white py-3 rounded-xl text-sm font-bold hover:shadow-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" /> 
-                      Publishing...
-                    </>
-                  ) : (
-                    'Share Post'
-                  )}
+                  Share Post
                 </button>
               </div>
             </div>
