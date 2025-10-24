@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     # My Apps
     'users.apps.UsersConfig',
     'photos.apps.PhotosConfig',
+    'interactions.apps.InteractionsConfig',
 ]
 
 MIDDLEWARE = [
@@ -128,4 +129,48 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+}
+
+# --- LOGGING CONFIGURATION ---
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO", # Only show INFO and higher for Django's own logs
+            "propagate": False,
+        },
+        "users": { # Logger for your 'users' app
+            "handlers": ["console"],
+            "level": "DEBUG", # Show everything from DEBUG level up
+            "propagate": False,
+        },
+        "photos": { # Logger for your 'photos' app
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "interactions": { # Logger for your 'interactions' app
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
 }

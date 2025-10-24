@@ -17,6 +17,7 @@ urlpatterns = [
     # Our App's API URLs
     path('api/', include('users.urls')),
     path('api/', include('photos.urls')),
+    path('api/', include('interactions.urls')),
 
     # JWT Token Authentication URLs
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
