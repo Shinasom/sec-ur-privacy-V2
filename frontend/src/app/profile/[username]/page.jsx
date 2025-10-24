@@ -1,6 +1,6 @@
 // =======================================================================
 // /src/app/profile/[username]/page.jsx
-// This version fixes the broken image bug in the PhotoGrid view.
+// Fixed version with image URL correction
 // =======================================================================
 'use client';
 
@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { Settings, LayoutGrid, List, Loader2 } from 'lucide-react';
+import { Settings, LayoutGrid, List, Loader2, ImageIcon } from 'lucide-react';
 import Post from '@/components/feed/Post';
 
 export default function ProfilePage() {
@@ -98,22 +98,82 @@ const TabButton = ({ Icon, active, onClick }) => (
   </button>
 );
 
-const PhotoGrid = ({ photos }) => (
-  <div className="grid grid-cols-3 gap-1">
-    {photos.map(photo => (
-      <div key={photo.id} className="aspect-square bg-gray-100">
-        {/* --- THIS IS THE FIX --- */}
-        <img src={photo.public_image} alt={photo.caption || 'User post'} className="w-full h-full object-cover" />
+const PhotoGrid = ({ photos }) => {
+  // Helper function to fix malformed image URLs
+  const fixImageUrl = (url) => {
+    if (!url) return 'https://placehold.co/400x400/eee/999?text=No+Image';
+    
+    let imageUrl = url;
+    
+    // If it's a relative URL, prepend the backend base
+    if (!imageUrl.startsWith('http')) {
+      imageUrl = `http://localhost:8000${imageUrl}`;
+    }
+    
+    // Fix duplicate path issue: /photos/public/.../photos/originals/... → /photos/public/...
+    imageUrl = imageUrl.replace(
+      /photos\/public\/(\d{4}\/\d{2}\/\d{2})\/photos\/originals\/\d{4}\/\d{2}\/\d{2}\//,
+      'photos/public/$1/'
+    );
+    
+    return imageUrl;
+  };
+
+  if (!photos || photos.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
+        <p className="text-lg font-semibold">No posts yet</p>
+        <p className="text-sm mt-2">Photos will appear here once uploaded</p>
       </div>
-    ))}
-  </div>
-);
+    );
+  }
 
-const PhotoFeed = ({ photos, userProfile }) => (
-  <div className="space-y-4 max-w-lg mx-auto">
-    {photos.map(photo => (
-      <Post key={photo.id} post={photo} uploader={userProfile} />
-    ))}
-  </div>
-);
+  return (
+    <div className="grid grid-cols-3 gap-1">
+      {photos.map(photo => {
+        const imageUrl = fixImageUrl(photo.public_image || photo.original_image);
+        
+        return (
+          <div key={photo.id} className="aspect-square bg-gray-100 relative overflow-hidden group cursor-pointer">
+            <img 
+              src={imageUrl}
+              alt={photo.caption || 'User post'} 
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              onError={(e) => {
+                console.error('Failed to load image:', imageUrl);
+                e.target.onerror = null;
+                e.target.src = 'https://placehold.co/400x400/eee/999?text=Image+Error';
+              }}
+            />
+            {/* Optional: Hover overlay with likes/comments count */}
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <div className="text-white text-sm font-semibold">
+                {photo.likes?.length || 0} ❤️ {photo.comments?.length || 0} 💬
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
+const PhotoFeed = ({ photos, userProfile }) => {
+  if (!photos || photos.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
+        <p className="text-lg font-semibold">No posts yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 max-w-lg mx-auto">
+      {photos.map(photo => (
+        <Post key={photo.id} post={photo} uploader={userProfile} />
+      ))}
+    </div>
+  );
+};
