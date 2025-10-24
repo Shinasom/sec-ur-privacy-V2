@@ -1,7 +1,6 @@
 // =======================================================================
 // /src/components/feed/Feed.jsx
-// This is the final, corrected version. It makes a single, efficient
-// API call to fetch posts, which now include all necessary uploader data.
+// This version shows the latest posts first (reversed chronological order)
 // =======================================================================
 'use client';
 
@@ -25,9 +24,11 @@ export default function Feed() {
       setLoading(true);
       try {
         // 1. Fetch photos with a SINGLE API call.
-        // The backend now provides the uploader data nested inside each post.
         const photosResponse = await api.get('/api/photos/');
-        setPosts(photosResponse.data);
+        
+        // 2. Reverse the array to show latest posts first
+        const reversedPosts = [...photosResponse.data].reverse();
+        setPosts(reversedPosts);
 
       } catch (error) {
         console.error("Failed to fetch feed data:", error);
@@ -47,13 +48,11 @@ export default function Feed() {
       <Moments />
       {posts.length > 0 ? (
         posts.map((post) => {
-          // 2. The uploader object is now directly available on the post.
-          // No need for a separate 'users' map or lookup.
           return (
             <Post
               key={post.id}
               post={post}
-              uploader={post.uploader} // 3. Pass the nested uploader object directly.
+              uploader={post.uploader}
             />
           );
         })
