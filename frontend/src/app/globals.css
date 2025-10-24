@@ -1,8 +1,26 @@
 /*
 =======================================================================
 /src/app/globals.css
-This is the corrected global stylesheet for a Tailwind CSS v4 project.
+This is the corrected global stylesheet for Tailwind CSS v4 with custom colors.
 =======================================================================
 */
 
 @import "tailwindcss";
+
+/* Define your custom color palette using CSS custom properties */
+@theme {
+    --color-background: #F5F3ED;
+    --color-primary: #556B2F;
+    --color-accent: #A3B18A;
+    --color-surface: #FFFFFF;
+    --color-dark-accent: #3A5A40;
+
+    /* Optional: Define additional shades if needed */
+    --color-primary-dark: #4A5D23;
+    --color-accent-light: #C1D1B0;
+}
+
+/* Apply the background color to the body by default */
+body {
+    background-color: var(--color-background);
+}
