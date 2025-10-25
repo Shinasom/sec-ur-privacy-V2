@@ -1,13 +1,12 @@
-// =======================================================================
-// /src/app/register/page.jsx
-// Modern, aesthetic registration page with gradient background
-// =======================================================================
+// frontend/src/app/register/page.jsx
+// Enhanced version with face encoding feedback
+
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { User, Lock, Mail, Pencil, Image as ImageIcon, Upload, X } from 'lucide-react';
+import { User, Lock, Mail, Pencil, Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -23,6 +22,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [encodingInfo, setEncodingInfo] = useState(null); // NEW: Track encoding status
   
   const { registerUser } = useAuth();
 
@@ -35,7 +35,6 @@ export default function RegisterPage() {
     const file = e.target.files[0];
     if (file) {
       setFormData(prev => ({ ...prev, profile_pic: file }));
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
@@ -47,6 +46,7 @@ export default function RegisterPage() {
   const removeImage = () => {
     setFormData(prev => ({ ...prev, profile_pic: null }));
     setPreviewUrl(null);
+    setEncodingInfo(null);
   };
 
   const handleSubmit = async (e) => {
@@ -57,20 +57,28 @@ export default function RegisterPage() {
     }
     setIsLoading(true);
     setError('');
+    setEncodingInfo(null);
 
     const result = await registerUser(formData);
 
     if (!result.success) {
       const errorMessages = Object.values(result.error).flat().join(' ');
       setError(errorMessages || 'Registration failed. Please try again.');
+      setIsLoading(false);
+    } else {
+      // Registration successful, show encoding info if available
+      if (result.user?.encoding_status) {
+        setEncodingInfo({
+          status: result.user.encoding_status,
+          hasEncoding: result.user.has_face_encoding
+        });
+      }
     }
-    
-    setIsLoading(false);
   };
 
   return (
     <main className="w-full min-h-screen lg:flex bg-background">
-      {/* Branding Section with Gradient */}
+      {/* Branding Section */}
       <div className="relative lg:w-1/2 flex flex-col items-center justify-center text-center p-12 bg-gradient-to-b from-accent via-primary to-dark-accent">
         <div className="w-full max-w-md">
           <h1 className="text-5xl font-bold text-white tracking-wider mb-4">Join SEC-UR Privacy</h1>
@@ -107,7 +115,7 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Profile Picture Upload - Featured */}
+              {/* Profile Picture Upload */}
               <div className="flex justify-center mb-6">
                 <div className="relative">
                   {previewUrl ? (
@@ -146,6 +154,24 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* NEW: Face Encoding Info Banner */}
+              {previewUrl && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-blue-800 mb-1">
+                        Face Recognition Setup
+                      </p>
+                      <p className="text-xs text-blue-700 leading-relaxed">
+                        We'll analyze your profile picture to enable automatic face detection 
+                        in uploaded photos. Make sure your face is clearly visible and well-lit.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Username */}
               <FormField 
                 id="username" 
@@ -164,7 +190,7 @@ export default function RegisterPage() {
                 />
               </FormField>
 
-              {/* First Name and Last Name - Side by Side */}
+              {/* First Name and Last Name */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField id="first_name" label="First Name" icon={<User className="h-5 w-5 text-gray-400" />}>
                   <input 
@@ -273,7 +299,6 @@ export default function RegisterPage() {
   );
 }
 
-// Reusable FormField component
 const FormField = ({ id, label, icon, required, children }) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">
