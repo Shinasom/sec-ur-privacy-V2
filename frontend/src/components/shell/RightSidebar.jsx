@@ -180,8 +180,8 @@ export default function RightSidebar() {
 
         {/* Footer */}
         <footer className="p-4 text-center text-xs text-gray-400 border-t border-gray-200">
-          <p className="mb-1">&copy; 2025 SEC-UR Privacy</p>
-          <p className="text-[10px]">Your data, your rules</p>
+          <p className="mb-1">&copy; 2025 Unmask</p>
+          <p className="text-[10px]">Reveal on Your Terms</p>
         </footer>
       </aside>
 

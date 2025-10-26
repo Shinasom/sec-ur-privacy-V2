@@ -46,7 +46,7 @@ export default function Sidebar({ onUploadClick }) {
         {/* App Logo/Branding */}
         <div className="px-4 py-6 flex items-center justify-center md:justify-start">
           <h1 className="text-3xl font-serif font-bold text-primary hidden md:block">
-            SEC-UR
+            Unmask
           </h1>
           <h1 className="text-3xl font-serif font-bold text-primary md:hidden">SU</h1>
         </div>
