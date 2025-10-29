@@ -1,13 +1,13 @@
 // =======================================================================
 // /src/components/feed/Moments.jsx
-// This component fetches live user data from the API to display the
-// "Moments" reel.
+// Cleaner moments/stories section with better styling
 // =======================================================================
 'use client';
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { Plus, Loader2 } from 'lucide-react';
 
 export default function Moments() {
   const [moments, setMoments] = useState([]);
@@ -20,12 +20,18 @@ export default function Moments() {
       try {
         const response = await api.get('/api/users/');
         
+        // Create "Your Story" moment
         const currentUserMoment = {
+          id: 'you',
           username: 'You',
-          profile_pic: currentUser?.profile_pic || `https://placehold.co/64x64/556B2F/F5F3ED?text=You`,
+          profile_pic: currentUser?.profile_pic || `https://placehold.co/80x80/556B2F/F5F3ED?text=You`,
+          isYou: true,
         };
 
-        const otherUsers = response.data.filter(u => u.username !== currentUser.username);
+        // Get other users
+        const otherUsers = response.data
+          .filter(u => u.username !== currentUser.username)
+          .map(u => ({ ...u, isYou: false }));
 
         setMoments([currentUserMoment, ...otherUsers]);
 
@@ -44,36 +50,70 @@ export default function Moments() {
 
   if (loading) {
     return (
-       <div className="bg-surface p-4 rounded-xl shadow-lg">
-         <h3 className="font-bold text-md mb-3 text-gray-800 px-2">Moments</h3>
-         <div className="h-[98px] flex items-center">
-            <p className="text-sm text-gray-500 px-2">Loading moments...</p>
-         </div>
-       </div>
+      <div className="bg-surface rounded-2xl shadow-md border border-gray-100 p-6">
+        <div className="flex items-center justify-center h-24">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="bg-surface p-4 rounded-xl shadow-lg">
-      <h3 className="font-bold text-md mb-3 text-gray-800 px-2">Moments</h3>
-      <div className="flex space-x-4 overflow-x-auto pb-2 -mx-4 px-4">
-        {moments.map((moment, index) => (
-          <div key={index} className="flex-shrink-0 text-center w-20 cursor-pointer group">
-            <div className="w-16 h-16 mx-auto p-1 rounded-full ring-2 ring-offset-2 ring-accent group-hover:ring-primary transition-all">
-              <img 
-                src={moment.profile_pic} 
-                alt={moment.username} 
-                className="w-full h-full rounded-full border-2 border-surface object-cover"
-                onError={(e) => { 
-                  e.target.onerror = null; 
-                  e.target.src = `https://placehold.co/64x64/A3B18A/FFFFFF?text=${moment.username.charAt(0).toUpperCase()}`; 
-                }}
-              />
-            </div>
-            <p className="text-xs mt-2 truncate text-gray-700">{moment.username}</p>
-          </div>
-        ))}
+    <div className="bg-surface rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100">
+        <h3 className="font-bold text-lg text-gray-900">Stories</h3>
+      </div>
+
+      {/* Moments Scroll Container */}
+      <div className="px-4 py-5">
+        <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide">
+          {moments.map((moment, index) => (
+            <MomentItem key={moment.id || index} moment={moment} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
+
+// Individual Moment Item Component
+const MomentItem = ({ moment }) => {
+  return (
+    <button className="flex-shrink-0 text-center group">
+      <div className="relative mb-2">
+        {/* Ring/Border */}
+        <div className={`w-20 h-20 rounded-full p-1 ${
+          moment.isYou 
+            ? 'bg-gradient-to-br from-accent to-primary' 
+            : 'bg-gradient-to-br from-primary via-dark-accent to-accent'
+        } group-hover:scale-105 transition-transform duration-300`}>
+          {/* Image Container */}
+          <div className="w-full h-full rounded-full bg-surface p-0.5">
+            <img 
+              src={moment.profile_pic} 
+              alt={moment.username} 
+              className="w-full h-full rounded-full object-cover"
+              onError={(e) => { 
+                e.target.onerror = null; 
+                e.target.src = `https://placehold.co/80x80/A3B18A/FFFFFF?text=${moment.username.charAt(0).toUpperCase()}`; 
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Plus Icon for "You" */}
+        {moment.isYou && (
+          <div className="absolute bottom-0 right-0 w-6 h-6 bg-gradient-to-br from-primary to-dark-accent rounded-full flex items-center justify-center border-2 border-surface shadow-md">
+            <Plus className="w-4 h-4 text-white" strokeWidth={3} />
+          </div>
+        )}
+      </div>
+
+      {/* Username */}
+      <p className="text-xs font-medium text-gray-700 max-w-[80px] truncate group-hover:text-primary transition-colors">
+        {moment.username}
+      </p>
+    </button>
+  );
+};

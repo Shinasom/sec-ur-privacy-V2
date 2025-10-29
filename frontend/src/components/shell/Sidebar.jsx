@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { mainNavItems, userNavItems, logoutNavItem } from '@/config/nav';
-import { PlusSquare, User } from 'lucide-react';
+import { PlusSquare, User, Bell } from 'lucide-react';
 import api from '@/lib/api';
 import ConsentModal from '@/components/consent/ConsentModal';
 
@@ -15,6 +15,7 @@ export default function Sidebar({ onUploadClick }) {
   const pathname = usePathname();
   const [isConsentModalOpen, setConsentModalOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   // Fetch pending consent count
   useEffect(() => {
@@ -42,56 +43,108 @@ export default function Sidebar({ onUploadClick }) {
 
   return (
     <>
-      <aside className="bg-surface border-r border-gray-200 w-20 md:w-64 h-screen flex flex-col z-30">
-        {/* App Logo/Branding */}
-        <div className="px-4 py-6 flex items-center justify-center md:justify-start">
-          <h1 className="text-3xl font-serif font-bold text-primary hidden md:block">
-            Unmask
-          </h1>
-          <h1 className="text-3xl font-serif font-bold text-primary md:hidden">SU</h1>
+      <aside className="bg-surface border-r border-gray-200 w-20 md:w-80 h-screen flex flex-col z-30">
+        {/* Enhanced Header with Logo and Brand */}
+        <div className="px-4 md:px-6 py-6 border-b border-gray-100">
+          <div className="flex items-center justify-center md:justify-start md:space-x-4">
+            {/* Logo */}
+            <div className="relative">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-primary to-dark-accent flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg md:text-xl">U</span>
+              </div>
+              {/* Small accent dot */}
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-accent rounded-full border-2 border-surface" />
+            </div>
+            
+            {/* Brand Name - Hidden on mobile */}
+            <div className="hidden md:block flex-1">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-dark-accent bg-clip-text text-transparent">
+                Unmask
+              </h1>
+              <p className="text-xs text-gray-500 mt-0.5">Reveal on Your Terms</p>
+            </div>
+
+            {/* Notification Bell - Hidden on mobile */}
+            <button 
+              onClick={() => setConsentModalOpen(true)}
+              className="hidden md:block relative p-2 hover:bg-background rounded-xl transition-colors group"
+            >
+              <Bell className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
+              {pendingCount > 0 && (
+                <>
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center">
+                    <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border border-surface">
+                      {pendingCount}
+                    </span>
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 px-4 space-y-2">
-          {mainNavItems.map((item) => (
-            item.modal ? (
+        <nav className="flex-1 px-2 md:px-4 py-4 space-y-1 md:space-y-2 overflow-y-auto">
+          {mainNavItems.map((item) => {
+            const isActive = pathname === item.href;
+            const itemBadge = item.text === 'Consent' ? pendingCount : 0;
+            
+            return item.modal ? (
               // Modal trigger (Consent)
               <button 
                 key={item.text}
                 onClick={() => handleNavItemClick(item)} 
+                onMouseEnter={() => setHoveredItem(item.text)}
+                onMouseLeave={() => setHoveredItem(null)}
                 className="w-full relative"
               >
                 <NavItem
                   Icon={item.icon}
                   text={item.text}
                   active={false}
-                  badge={item.text === 'Consent' ? pendingCount : 0}
+                  badge={itemBadge}
+                  hovered={hoveredItem === item.text}
                 />
               </button>
             ) : (
               // Regular navigation
-              <NavItem
+              <div
                 key={item.text}
-                Icon={item.icon}
-                text={item.text}
-                href={item.href}
-                active={pathname === item.href}
-              />
-            )
-          ))}
+                onMouseEnter={() => setHoveredItem(item.text)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                <NavItem
+                  Icon={item.icon}
+                  text={item.text}
+                  href={item.href}
+                  active={isActive}
+                  badge={itemBadge}
+                  hovered={hoveredItem === item.text}
+                />
+              </div>
+            );
+          })}
           
-          {/* Upload Button */}
-          <button onClick={onUploadClick} className="w-full">
-            <NavItem
-              Icon={PlusSquare}
-              text="Upload"
-              active={false}
-            />
-          </button>
+          {/* Upload Button - Featured */}
+          <div className="pt-2">
+            <button 
+              onClick={onUploadClick} 
+              className="w-full group"
+            >
+              <div className="relative bg-gradient-to-r from-primary to-dark-accent p-3 md:p-4 rounded-xl md:rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all">
+                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all rounded-xl md:rounded-2xl" />
+                <div className="relative flex items-center justify-center md:justify-start md:space-x-3">
+                  <PlusSquare className="w-6 h-6 text-white" strokeWidth={2.5} />
+                  <span className="hidden md:inline font-bold text-white">Create Post</span>
+                </div>
+              </div>
+            </button>
+          </div>
         </nav>
 
         {/* User Navigation & Logout */}
-        <div className="px-4 py-6 space-y-2 border-t border-gray-200">
+        <div className="px-2 md:px-4 py-4 md:py-6 space-y-1 md:space-y-2 border-t border-gray-200">
           {/* Profile link */}
           {user && (
             <NavItem
@@ -140,31 +193,63 @@ export default function Sidebar({ onUploadClick }) {
   );
 }
 
-// Reusable NavItem sub-component
-const NavItem = ({ Icon, text, href, active = false, badge = 0 }) => {
+// Enhanced NavItem sub-component
+const NavItem = ({ Icon, text, href, active = false, badge = 0, hovered = false }) => {
   const content = (
     <div
-      className={`flex items-center justify-center md:justify-start space-x-3 p-3 rounded-lg transition-colors w-full relative ${
+      className={`relative flex items-center justify-center md:justify-start space-x-3 px-3 md:px-4 py-3 md:py-3.5 rounded-xl md:rounded-2xl transition-all duration-300 group ${
         active
-          ? 'bg-background text-primary font-semibold'
-          : 'text-primary/70 hover:bg-background hover:text-primary'
+          ? 'bg-gradient-to-r from-primary to-dark-accent text-white shadow-lg shadow-primary/30'
+          : 'text-gray-600 hover:bg-background hover:text-primary'
       }`}
     >
+      {/* Active Indicator */}
+      {active && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 md:w-1.5 h-6 md:h-8 bg-white rounded-r-full" />
+      )}
+
+      {/* Icon */}
       <div className="relative">
-        <Icon className="w-6 h-6 flex-shrink-0" />
+        <Icon 
+          className={`w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 ${
+            active || hovered ? 'scale-110' : 'scale-100'
+          }`} 
+          strokeWidth={active ? 2.5 : 2} 
+        />
+        
+        {/* Badge - Mobile version (small dot) */}
         {badge > 0 && (
           <>
-            {/* Animated pulse */}
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-ping"></span>
-            {/* Badge */}
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-surface">
-              {badge > 9 ? '9+' : badge}
-            </span>
+            <div className="md:hidden absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-surface" />
+            {/* Badge - Desktop version */}
+            <div className="hidden md:block absolute -top-2 -right-2 min-w-[18px] h-[18px]">
+              <span className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75" />
+              <span className="relative bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 border-2 border-surface flex items-center justify-center">
+                {badge > 9 ? '9+' : badge}
+              </span>
+            </div>
           </>
         )}
       </div>
-      <span className="hidden md:inline">{text}</span>
-      {badge > 0 && (
+
+      {/* Text - Hidden on mobile */}
+      <span className={`hidden md:inline flex-1 text-left font-semibold transition-all ${
+        active ? 'translate-x-1' : 'translate-x-0'
+      }`}>
+        {text}
+      </span>
+      
+      {/* Arrow indicator - Desktop only */}
+      {(active || hovered) && (
+        <div className={`hidden md:block transition-all duration-300 ${
+          active ? 'opacity-100 translate-x-0' : 'opacity-50 -translate-x-2'
+        }`}>
+          →
+        </div>
+      )}
+
+      {/* Additional badge count - Desktop only */}
+      {badge > 0 && !active && (
         <span className="hidden md:inline ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
           {badge}
         </span>

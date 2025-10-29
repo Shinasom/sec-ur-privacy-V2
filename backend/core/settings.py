@@ -11,7 +11,7 @@ SECRET_KEY = "django-insecure-^v=%8#(nml1s8!x5cwi_tz%r%+d4tb%9s*w$m=pn5(!*(1q+mu
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.1.42', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -122,7 +122,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # --- CORS (FOR REACT FRONTEND) ---
 # For development, we can allow all origins. In production, we'd lock this down.
-CORS_ALLOW_ALL_ORIGINS = True
+# --- CORS (FOR REACT FRONTEND) ---
+# Whitelist the frontend origins that are allowed to make requests to this API
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://192.168.1.42:3000",
+]
 
 # --- DJANGO REST FRAMEWORK ---
 REST_FRAMEWORK = {

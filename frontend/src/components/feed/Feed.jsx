@@ -1,6 +1,6 @@
 // =======================================================================
 // /src/components/feed/Feed.jsx
-// This version shows the latest posts first (reversed chronological order)
+// Cleaner, more organized feed layout
 // =======================================================================
 'use client';
 
@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import Post from './Post';
 import Moments from './Moments';
+import { Loader2, ImageOff } from 'lucide-react';
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
@@ -23,10 +24,10 @@ export default function Feed() {
       }
       setLoading(true);
       try {
-        // 1. Fetch photos with a SINGLE API call.
+        // Fetch photos with a SINGLE API call
         const photosResponse = await api.get('/api/photos/');
         
-        // 2. Reverse the array to show latest posts first
+        // Reverse the array to show latest posts first
         const reversedPosts = [...photosResponse.data].reverse();
         setPosts(reversedPosts);
 
@@ -40,26 +41,52 @@ export default function Feed() {
   }, [user]);
 
   if (loading) {
-    return <div className="text-center py-16 text-gray-500">Loading feed...</div>;
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading your feed...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full space-y-8 pb-20 lg:pb-0">
+    <div className="w-full space-y-6 pb-20 lg:pb-8">
+      {/* Moments Section */}
       <Moments />
+
+      {/* Posts Feed */}
       {posts.length > 0 ? (
-        posts.map((post) => {
-          return (
+        <div className="space-y-6">
+          {posts.map((post) => (
             <Post
               key={post.id}
               post={post}
               uploader={post.uploader}
             />
-          );
-        })
+          ))}
+        </div>
       ) : (
-        <div className="text-center py-16 text-gray-500 bg-surface rounded-xl shadow-lg">
-          <p className="text-lg">Your feed is empty.</p>
-          <p className="text-sm mt-2">Upload a photo to see it here!</p>
+        /* Empty State */
+        <div className="bg-surface rounded-2xl shadow-lg border border-gray-100 p-12">
+          <div className="text-center max-w-md mx-auto">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
+              <ImageOff className="w-10 h-10 text-primary/60" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Your feed is empty
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Start by uploading your first photo or follow some users to see their posts here!
+            </p>
+            <button 
+              onClick={() => document.querySelector('[data-upload-trigger]')?.click()}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-dark-accent text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+            >
+              Upload Your First Photo
+            </button>
+          </div>
         </div>
       )}
     </div>
