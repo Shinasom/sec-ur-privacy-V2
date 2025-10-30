@@ -1,4 +1,4 @@
-# SEC-UR Privacy
+# Unmask
 
 **The Social Network Built on Consent.**
 
