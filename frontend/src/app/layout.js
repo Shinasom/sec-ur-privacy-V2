@@ -15,8 +15,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata = {
-  title: "SEC-UR Privacy", // Keeping your app's name
-  description: "Your Photos, Your Consent, Your Network.",
+  title: "Unmask - Reveal on Your Terms",
+  description: "Consent-first photo sharing. Your photos, your control, your network.",
 };
 
 export default function RootLayout({ children }) {
