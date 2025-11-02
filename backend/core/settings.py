@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
 
     # My Apps
     'users.apps.UsersConfig',
@@ -134,6 +135,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # --- LOGGING CONFIGURATION ---
@@ -178,4 +180,17 @@ LOGGING = {
             "propagate": False,
         },
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'SEC-UR Privacy API',
+    'DESCRIPTION': 'Privacy-first photo sharing platform with consent management',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+    },
+    'COMPONENT_SPLIT_REQUEST': True
 }
