@@ -3,6 +3,9 @@
 // This version fixes the 401 Unauthorized error by ensuring the API client
 // is immediately configured with the new auth token upon login and on
 // initial page load.
+//
+// FIXED AGAIN: Now also exports 'setUser' so other components can update
+// the user state.
 // =======================================================================
 'use client';
 
@@ -116,6 +119,7 @@ export const AuthProvider = ({ children }) => {
 
   const contextData = {
     user,
+    setUser, // <-- THIS IS THE REQUIRED FIX
     tokens,
     loading,
     loginUser,
@@ -133,4 +137,3 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   return useContext(AuthContext);
 };
-

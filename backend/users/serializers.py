@@ -19,6 +19,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'bio', 
             'profile_pic',
             'password', # Include password field
+            'face_sharing_mode', # --- ADD THIS LINE ---
         ]
         # Make certain fields read-only
         read_only_fields = ['id']

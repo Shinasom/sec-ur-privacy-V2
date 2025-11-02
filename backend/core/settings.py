@@ -161,7 +161,9 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["console"],
-            "level": "INFO", # Only show INFO and higher for Django's own logs
+            # --- THIS IS THE CHANGE ---
+            "level": "WARNING", # Was "INFO", change to "WARNING"
+            # --- END OF CHANGE ---
             "propagate": False,
         },
         "users": { # Logger for your 'users' app
