@@ -1,6 +1,6 @@
 // =======================================================================
 // /src/app/feed/layout.jsx
-// Updated with background upload notifications
+// FINAL FIX: Properly centered and responsive feed
 // =======================================================================
 'use client';
 
@@ -19,7 +19,6 @@ export default function AppLayout({ children }) {
   const handleUploadStart = (status) => {
     setUploadStatus(status);
     
-    // Auto-hide success/error messages after 5 seconds
     if (status === 'success' || status === 'error') {
       setTimeout(() => {
         setUploadStatus(null);
@@ -41,12 +40,14 @@ export default function AppLayout({ children }) {
         <RightSidebar />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 md:ml-64 lg:mr-80">
+      {/* Main Content - CENTERED & RESPONSIVE */}
+      <div className="md:ml-64 lg:mr-80">
         <Header />
         
-        <main className="flex justify-center p-4 sm:p-6 lg:p-8 pt-24">
-          <div className="w-full max-w-3xl">
+        {/* Use padding to create balanced spacing */}
+        <main className="min-h-screen pt-20 pb-20 px-4 md:px-8 lg:px-12 xl:px-16">
+          {/* Feed container with max width */}
+          <div className="max-w-3xl mx-auto">
             {children}
           </div>
         </main>

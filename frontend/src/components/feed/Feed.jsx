@@ -1,6 +1,6 @@
 // =======================================================================
 // /src/components/feed/Feed.jsx
-// Cleaner, more organized feed layout
+// FIXED: More responsive with better spacing
 // =======================================================================
 'use client';
 
@@ -24,13 +24,9 @@ export default function Feed() {
       }
       setLoading(true);
       try {
-        // Fetch photos with a SINGLE API call
         const photosResponse = await api.get('/api/photos/');
-        
-        // Reverse the array to show latest posts first
         const reversedPosts = [...photosResponse.data].reverse();
         setPosts(reversedPosts);
-
       } catch (error) {
         console.error("Failed to fetch feed data:", error);
       } finally {
@@ -52,13 +48,13 @@ export default function Feed() {
   }
 
   return (
-    <div className="w-full space-y-6 pb-20 lg:pb-8">
+    <div className="w-full space-y-4 md:space-y-6 pb-20 lg:pb-8">
       {/* Moments Section */}
       <Moments />
 
       {/* Posts Feed */}
       {posts.length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {posts.map((post) => (
             <Post
               key={post.id}
@@ -69,7 +65,7 @@ export default function Feed() {
         </div>
       ) : (
         /* Empty State */
-        <div className="bg-surface rounded-2xl shadow-lg border border-gray-100 p-12">
+        <div className="bg-surface rounded-2xl shadow-lg border border-gray-100 p-8 md:p-12">
           <div className="text-center max-w-md mx-auto">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
               <ImageOff className="w-10 h-10 text-primary/60" />

@@ -1,11 +1,10 @@
 // =======================================================================
 // /src/components/feed/Post.jsx
-// Cleaner, Instagram-style post component
+// FIXED: More responsive post card
 // =======================================================================
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { MoreHorizontal, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -53,14 +52,14 @@ export default function Post({ post, uploader }) {
 
   return (
     <>
-      <article className="bg-surface rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
+      <article className="bg-surface rounded-xl md:rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
         {/* Post Header */}
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between p-3 md:p-4">
+          <div className="flex items-center space-x-2 md:space-x-3">
             <img 
               src={uploader.profile_pic} 
               alt={uploader.username} 
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20"
+              className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-primary/20"
               onError={(e) => { 
                 e.target.onerror = null; 
                 e.target.src = `https://placehold.co/40x40/556B2F/FFFFFF?text=${uploader.username?.charAt(0).toUpperCase() || 'U'}`; 
@@ -85,7 +84,7 @@ export default function Post({ post, uploader }) {
           <img 
             src={post.public_image} 
             alt={post.caption || 'A photo by ' + uploader.username} 
-            className="w-full h-auto object-contain max-h-[600px]"
+            className="w-full h-auto object-contain max-h-[500px] md:max-h-[600px]"
             onError={(e) => { 
               e.target.onerror = null; 
               e.target.src = 'https://placehold.co/800x600/eee/ccc?text=Image+Not+Available'; 
@@ -94,16 +93,16 @@ export default function Post({ post, uploader }) {
         </div>
 
         {/* Post Actions */}
-        <div className="p-4 space-y-3">
+        <div className="p-3 md:p-4 space-y-2 md:space-y-3">
           {/* Action Buttons */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 md:space-x-4">
               <button 
                 onClick={handleLike}
-                className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors group"
+                className="p-1 md:p-2 -ml-1 md:-ml-2 rounded-full hover:bg-gray-100 transition-colors group"
               >
                 <Heart 
-                  className={`w-6 h-6 transition-all ${
+                  className={`w-6 h-6 md:w-7 md:h-7 transition-all ${
                     hasLiked 
                       ? 'text-red-500 fill-red-500 scale-110' 
                       : 'text-gray-600 group-hover:text-red-500 group-hover:scale-110'
@@ -113,23 +112,23 @@ export default function Post({ post, uploader }) {
               </button>
               <button 
                 onClick={() => setCommentModalOpen(true)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors group"
+                className="p-1 md:p-2 rounded-full hover:bg-gray-100 transition-colors group"
               >
                 <MessageCircle 
-                  className="w-6 h-6 text-gray-600 group-hover:text-primary group-hover:scale-110 transition-all" 
+                  className="w-6 h-6 md:w-7 md:h-7 text-gray-600 group-hover:text-primary group-hover:scale-110 transition-all" 
                   strokeWidth={2}
                 />
               </button>
-              <button className="p-2 rounded-full hover:bg-gray-100 transition-colors group">
+              <button className="p-1 md:p-2 rounded-full hover:bg-gray-100 transition-colors group">
                 <Send 
-                  className="w-6 h-6 text-gray-600 group-hover:text-primary group-hover:scale-110 transition-all" 
+                  className="w-6 h-6 md:w-7 md:h-7 text-gray-600 group-hover:text-primary group-hover:scale-110 transition-all" 
                   strokeWidth={2}
                 />
               </button>
             </div>
-            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors group">
+            <button className="p-1 md:p-2 rounded-full hover:bg-gray-100 transition-colors group">
               <Bookmark 
-                className="w-6 h-6 text-gray-600 group-hover:text-primary group-hover:scale-110 transition-all" 
+                className="w-6 h-6 md:w-7 md:h-7 text-gray-600 group-hover:text-primary group-hover:scale-110 transition-all" 
                 strokeWidth={2}
               />
             </button>
@@ -165,7 +164,7 @@ export default function Post({ post, uploader }) {
 
           {/* Comments Preview */}
           {comments.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-1 md:space-y-2">
               {comments.length > 2 && (
                 <button 
                   onClick={() => setCommentModalOpen(true)}
