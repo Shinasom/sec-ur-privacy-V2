@@ -1,3 +1,4 @@
+# backend/photos/models.py
 from django.conf import settings
 from django.db import models
 
@@ -11,13 +12,8 @@ class Photo(models.Model):
         on_delete=models.CASCADE,
         related_name='uploaded_photos'
     )
-    # This field stores the pristine, untouched original file.
     original_image = models.ImageField(upload_to='photos/originals/%Y/%m/%d/')
-    
-    # This field stores the publicly visible, masked/unmasked version.
-    # It can be null initially until the processing service runs.
     public_image = models.ImageField(upload_to='photos/public/%Y/%m/%d/', null=True, blank=True)
-    
     caption = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -40,10 +36,36 @@ class ConsentRequest(models.Model):
         related_name='consent_requests_received'
     )
     status = models.CharField(max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING)
-    # Updated comment to reflect the 'left,top,right,bottom' coordinate order
     bounding_box = models.CharField(max_length=100) # To store the face location 'left,top,right,bottom'
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Request for {self.requested_user.username} on photo {self.photo.id} is {self.status}"
+
+
+# --- NEW MODEL ---
+# This model stores the location of EVERY face detected in a photo,
+# not just those requiring consent. This allows us to avoid re-running face detection.
+class DetectedFace(models.Model):
+    photo = models.ForeignKey(
+        Photo, 
+        on_delete=models.CASCADE, 
+        related_name='detected_faces'
+    )
+    # Store the coordinates 'left,top,right,bottom'
+    bounding_box = models.CharField(max_length=100) 
+    
+    # Link to the matched user, if any.
+    # If the user is deleted, the face just becomes "Unknown"
+    matched_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, 
+        null=True,
+        blank=True,
+        related_name='faces_detected_in_photos'
+    )
+
+    def __str__(self):
+        user_str = self.matched_user.username if self.matched_user else "Unknown"
+        return f"Face ({user_str}) in Photo {self.photo.id} at {self.bounding_box}"
