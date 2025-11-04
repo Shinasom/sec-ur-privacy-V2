@@ -1,188 +1,238 @@
-# backend/photos/services.py (OPTIMIZED VERSION)
+# backend/photos/services.py (FINAL OPTIMIZED VERSION)
 
 import face_recognition
 import numpy as np
 from PIL import Image, ImageDraw
 from django.core.files import File
+from django.db.models import Q
 import logging
 import time
 
 from users.models import CustomUser
 from users.services import get_face_encodings_dict
-from .models import Photo, ConsentRequest
+# Import the new DetectedFace model
+from .models import Photo, ConsentRequest, DetectedFace
 
 logger = logging.getLogger('photos')
 
+
+def _regenerate_public_image(photo: Photo):
+    """
+    This is the "source of truth" function, now optimized to use the DetectedFace table
+    instead of re-running face detection.
+    This fixes any seam/offset/artifact issues from re-saving.
+    """
+    logger.info(f"[Regenerate] START: Regenerating public_image for photo {photo.id}.")
+    start_time = time.time()
+
+    try:
+        # 1. Load the pristine original image
+        original = Image.open(photo.original_image.path)
+        public_image = original.convert('RGB')
+        draw = ImageDraw.Draw(public_image)
+
+        # 2. Get all detected faces *from the database*
+        all_detected_faces = photo.detected_faces.all()
+        logger.debug(f"[Regenerate] Photo {photo.id}: Found {len(all_detected_faces)} stored faces in database.")
+
+        if not all_detected_faces:
+            logger.warning(f"[Regenerate] Photo {photo.id}: No detected faces found in DB. Image will be public.")
+            # No faces, so just save a copy of the original as the public image
+            # (This logic is same as step 6)
+        
+        # 3. Get all *approved* consent requests for this photo
+        approved_users_ids = list(
+            photo.consent_requests.filter(status='APPROVED').values_list('requested_user_id', flat=True)
+        )
+        logger.debug(f"[Regenerate] Photo {photo.id}: Found {len(approved_users_ids)} approved users.")
+
+        # 4. Loop through all stored faces and decide which to mask
+        faces_to_mask = []
+        for face in all_detected_faces:
+            unmask_face = False
+            
+            # 4a. Check if the face belongs to a matched user
+            if face.matched_user:
+                # 4a.i. Is it the uploader?
+                if face.matched_user_id == photo.uploader_id:
+                    unmask_face = True
+                    logger.debug(f"[Regenerate] Photo {photo.id}: Unmasking face at {face.bounding_box} (Uploader: {face.matched_user.username}).")
+                
+                # 4a.ii. Is it a 'PUBLIC' user?
+                elif face.matched_user.face_sharing_mode == CustomUser.FaceSharingMode.PUBLIC:
+                    unmask_face = True
+                    logger.debug(f"[Regenerate] Photo {photo.id}: Unmasking face at {face.bounding_box} (PUBLIC mode: {face.matched_user.username}).")
+                
+                # 4a.iii. Is it an 'APPROVED' request?
+                elif face.matched_user_id in approved_users_ids:
+                    unmask_face = True
+                    logger.debug(f"[Regenerate] Photo {photo.id}: Unmasking face at {face.bounding_box} (APPROVED: {face.matched_user.username}).")
+            
+            # 4b. If no unmask rule matched, it must be masked
+            if not unmask_face:
+                faces_to_mask.append(face.bounding_box)
+                logger.debug(f"[Regenerate] Photo {photo.id}: Masking face at {face.bounding_box} (User: {face.matched_user or 'Unknown'}).")
+
+        logger.info(f"[Regenerate] Photo {photo.id}: Total={len(all_detected_faces)}, Unmasked={len(all_detected_faces) - len(faces_to_mask)}, Masked={len(faces_to_mask)}.")
+
+        # 5. Draw all necessary masks
+        for bounding_box_str in faces_to_mask:
+            try:
+                coords = [int(c) for c in bounding_box_str.split(',')]
+                left, top, right, bottom = coords
+                draw.rectangle(((left, top), (right, bottom)), outline=(0, 0, 0), fill=(0, 0, 0))
+            except Exception as e:
+                logger.error(f"[Regenerate] Photo {photo.id}: Error parsing bounding box '{bounding_box_str}': {e}")
+
+        del draw
+
+        # 6. Save the final image to the public_image field
+        from io import BytesIO
+        temp_thumb = BytesIO()
+        public_image.save(temp_thumb, format='JPEG', quality=90)
+        temp_thumb.seek(0)
+
+        photo.public_image.save(
+            f"public_{photo.id}.jpg",
+            File(temp_thumb),
+            save=True
+        )
+        temp_thumb.close()
+
+        total_time = time.time() - start_time
+        logger.info(f"[Regenerate] SUCCESS: Regenerated public_image for {photo.id} in {total_time:.3f}s.")
+
+    except Exception as e:
+        logger.error(f"[Regenerate] FAILED: Error regenerating public_image for {photo.id}: {e}", exc_info=True)
+
+
 def process_photo_for_faces(photo_id: int):
     """
-    OPTIMIZED: Service function to perform face recognition on uploaded photos.
-    Now uses pre-computed face encodings from the database for massive speedup.
-    
-    PERFORMANCE:
-    - OLD: Load and encode N profile pics every time = O(N × M) where M = photos
-    - NEW: Load pre-computed encodings from DB = O(N) once, then O(1) per photo
-    - Expected speedup: 10-100x depending on number of users
-    
-    WORKFLOW:
-    1. Copy original to public_image
-    2. Load pre-computed face encodings from database (FAST!)
-    3. Detect faces in uploaded photo
-    4. Match faces to known encodings
-    5. Create consent requests (excluding uploader)
-    6. Mask all faces
-    7. Unmask uploader's face
+    Service function to perform face recognition on *newly uploaded* photos.
+    This function now:
+    1. Runs detection ONCE.
+    2. Populates the new `DetectedFace` table with ALL faces.
+    3. Creates `ConsentRequest` objects for matched users who require it.
+    4. Calls `_regenerate_public_image()` to build the initial masked version.
     """
     start_time = time.time()
+    logger.info(f"[PhotoProcessing] START: Processing NEW photo_id {photo_id}...")
     
     try:
         photo = Photo.objects.get(id=photo_id)
         uploader = photo.uploader
     except Photo.DoesNotExist:
-        logger.error(f"Photo with id {photo_id} not found for processing.")
+        logger.error(f"[PhotoProcessing] FATAL: Photo with id {photo_id} not found.")
         return
 
-    logger.info(f"Processing photo {photo_id} uploaded by {uploader.username}")
+    try:
+        # --- Step 1: Create the initial public image (as a pristine copy) ---
+        photo.public_image.save(
+            photo.original_image.name,
+            File(photo.original_image.file),
+            save=True
+        )
 
-    # --- Step 1: Create the initial public image ---
-    photo.public_image.save(
-        photo.original_image.name,
-        File(photo.original_image.file),
-        save=True
-    )
-
-    # --- Step 2: OPTIMIZED - Load pre-computed encodings from database ---
-    encoding_load_start = time.time()
-    known_encodings_array, known_users = get_face_encodings_dict()
-    encoding_load_time = time.time() - encoding_load_start
-    
-    logger.info(f"Loaded {len(known_users)} pre-computed encodings in {encoding_load_time:.3f}s")
-    
-    if len(known_users) == 0:
-        logger.warning("No users with face encodings found. Skipping face matching.")
-        return
-
-    # --- Step 3: Detect faces in the uploaded photo ---
-    detection_start = time.time()
-    original_image_path = photo.original_image.path
-    unknown_image = face_recognition.load_image_file(original_image_path)
-    unknown_face_locations = face_recognition.face_locations(unknown_image)
-    unknown_face_encodings = face_recognition.face_encodings(unknown_image, unknown_face_locations)
-    detection_time = time.time() - detection_start
-    
-    logger.info(f"Detected {len(unknown_face_locations)} faces in {detection_time:.3f}s")
-
-    if len(unknown_face_locations) == 0:
-        logger.info("No faces detected in photo")
-        return
-
-    # --- Step 4: Match faces to known encodings ---
-    matching_start = time.time()
-    found_users = set()
-    uploader_face_location = None
-    
-    for unknown_encoding, face_location in zip(unknown_face_encodings, unknown_face_locations):
-        # Compare against ALL pre-computed encodings at once (vectorized operation)
-        matches = face_recognition.compare_faces(known_encodings_array, unknown_encoding, tolerance=0.6)
+        # --- Step 2: Load pre-computed user encodings ---
+        encoding_load_start = time.time()
+        known_encodings_array, known_users = get_face_encodings_dict()
+        encoding_load_time = time.time() - encoding_load_start
+        logger.info(f"[PhotoProcessing] Photo {photo.id}: Loaded {len(known_users)} encodings in {encoding_load_time:.3f}s.")
         
-        if True in matches:
-            # Get the index of the first match
-            first_match_index = matches.index(True)
-            matched_user = known_users[first_match_index]
+        # --- Step 3: Detect faces in the uploaded photo (RUNS ONCE) ---
+        detection_start = time.time()
+        original_image_path = photo.original_image.path
+        unknown_image = face_recognition.load_image_file(original_image_path)
+        unknown_face_locations = face_recognition.face_locations(unknown_image)
+        unknown_face_encodings = face_recognition.face_encodings(unknown_image, unknown_face_locations)
+        detection_time = time.time() - detection_start
+        logger.info(f"[PhotoProcessing] Photo {photo.id}: Detected {len(unknown_face_locations)} faces in {detection_time:.3f}s.")
 
-            # Check if matched user is the uploader
-            if matched_user.id == uploader.id:
-                uploader_face_location = face_location
-                logger.info(f"Detected uploader's face at location {face_location}")
-                continue
-            
-            # Create consent request for other users
-            if matched_user.id not in found_users:
-                top, right, bottom, left = face_location
-                bounding_box_str = f"{left},{top},{right},{bottom}"
+        if len(unknown_face_locations) == 0:
+            logger.info(f"[PhotoProcessing] Photo {photo.id}: No faces detected.")
+            return
 
-                ConsentRequest.objects.create(
-                    photo=photo,
-                    requested_user=matched_user,
-                    bounding_box=bounding_box_str
-                )
-                found_users.add(matched_user.id)
-                logger.info(f"Created consent request for {matched_user.username}")
-    
-    matching_time = time.time() - matching_start
-    logger.info(f"Face matching completed in {matching_time:.3f}s, found {len(found_users)} matches")
-    
-    # --- Step 5: Mask all detected faces ---
-    masking_start = time.time()
-    public_image_path = photo.public_image.path
-    pil_image = Image.open(public_image_path)
-    draw = ImageDraw.Draw(pil_image)
-    
-    for face_location in unknown_face_locations:
-        top, right, bottom, left = face_location
-        draw.rectangle(((left, top), (right, bottom)), outline=(0, 0, 0), fill=(0, 0, 0))
-    
-    del draw
-    pil_image.save(public_image_path)
-    masking_time = time.time() - masking_start
-    
-    logger.info(f"Masked {len(unknown_face_locations)} faces in {masking_time:.3f}s")
-    
-    # --- Step 6: Unmask uploader's face ---
-    if uploader_face_location:
-        unmask_start = time.time()
-        original = Image.open(photo.original_image.path)
-        public = Image.open(photo.public_image.path)
+        # --- Step 4: Save ALL faces to DB and Create Consent Requests ---
+        matching_start = time.time()
+        logger.info(f"[PhotoProcessing] Photo {photo.id}: Saving all {len(unknown_face_locations)} detected faces to database...")
         
-        top, right, bottom, left = uploader_face_location
-        unmasked_face_crop = original.crop((left, top, right, bottom))
-        public.paste(unmasked_face_crop, (left, top))
-        public.save(photo.public_image.path)
+        found_users_for_consent = set()
         
-        unmask_time = time.time() - unmask_start
-        logger.info(f"Unmasked uploader's face in {unmask_time:.3f}s")
-    else:
-        if uploader.has_valid_face_encoding():
-            logger.warning(f"Uploader {uploader.username} has encoding but face not detected in photo")
-        else:
-            logger.info(f"Uploader {uploader.username} has no face encoding")
-    
-    total_time = time.time() - start_time
-    logger.info(f"Total processing time: {total_time:.3f}s")
-    logger.info(f"Breakdown: Load={encoding_load_time:.3f}s, Detect={detection_time:.3f}s, "
-                f"Match={matching_time:.3f}s, Mask={masking_time:.3f}s")
+        for unknown_encoding, face_location in zip(unknown_face_encodings, unknown_face_locations):
+            top, right, bottom, left = face_location
+            bounding_box_str = f"{left},{top},{right},{bottom}"
+            matched_user = None # Default to unknown
+
+            # Try to match the face
+            if len(known_users) > 0:
+                matches = face_recognition.compare_faces(known_encodings_array, unknown_encoding, tolerance=0.6)
+                if True in matches:
+                    matched_user = known_users[matches.index(True)]
+
+            # Save this face to the new DetectedFace table
+            DetectedFace.objects.create(
+                photo=photo,
+                bounding_box=bounding_box_str,
+                matched_user=matched_user
+            )
+
+            # If we found a user, check if they need a consent request
+            if matched_user:
+                is_uploader = matched_user.id == uploader.id
+                is_public = matched_user.face_sharing_mode == CustomUser.FaceSharingMode.PUBLIC
+                
+                # Only create a request if they are not the uploader, not public,
+                # and we haven't already made a request for them for this photo.
+                if not is_uploader and not is_public and matched_user.id not in found_users_for_consent:
+                    ConsentRequest.objects.create(
+                        photo=photo,
+                        requested_user=matched_user,
+                        bounding_box=bounding_box_str
+                    )
+                    found_users_for_consent.add(matched_user.id)
+                    logger.info(f"[PhotoProcessing] Photo {photo.id}: Created ConsentRequest for {matched_user.username}.")
+        
+        matching_time = time.time() - matching_start 
+        logger.info(f"[PhotoProcessing] Photo {photo.id}: DB save complete in {matching_time:.3f}s. Created {len(found_users_for_consent)} requests.")
+        
+        # --- Step 5: Call the regeneration function ---
+        logger.info(f"[PhotoProcessing] Photo {photo.id}: Calling _regenerate_public_image to create initial masked version.")
+        _regenerate_public_image(photo)
+
+        total_time = time.time() - start_time
+        logger.info(f"[PhotoProcessing] SUCCESS: Finished NEW photo {photo.id} in {total_time:.3f}s.")
+
+    except Exception as e:
+        logger.error(f"[PhotoProcessing] FAILED: Error processing NEW photo {photo.id}: {e}", exc_info=True)
 
 
 def unmask_approved_face(consent_request_id: int):
     """
     Service to unmask a single approved face on the public image.
-    This is triggered when a ConsentRequest status is updated to 'APPROVED'.
+    This function now just calls the regeneration function.
     """
+    logger.info(f"[Unmasking] START: Received approval for consent_request_id {consent_request_id}...")
+    
     try:
         consent_request = ConsentRequest.objects.get(id=consent_request_id)
+        
         if consent_request.status != 'APPROVED':
-            logger.info(f"Unmasking skipped for request {consent_request_id} (status: {consent_request.status})")
+            logger.warning(f"[Unmasking] SKIPPED: Request {consent_request_id} status is '{consent_request.status}', not 'APPROVED'.")
             return
 
         photo = consent_request.photo
+        user = consent_request.requested_user
+        logger.info(f"[Unmasking] Request {consent_request_id}: User {user.username} approved. Triggering regeneration for photo {photo.id}.")
         
-        # Open images
-        original = Image.open(photo.original_image.path)
-        public = Image.open(photo.public_image.path)
-
-        # Get bounding box
-        coords = [int(c) for c in consent_request.bounding_box.split(',')]
-        left, top, right, bottom = coords
+        # --- NEW LOGIC ---
+        # Call the ultra-fast regeneration function. No face detection needed!
+        _regenerate_public_image(photo)
         
-        # Crop and paste
-        unmasked_face_crop = original.crop((left, top, right, bottom))
-        public.paste(unmasked_face_crop, (left, top))
-        public.save(photo.public_image.path)
-        
-        logger.info(f"Unmasked face for {consent_request.requested_user.username} on photo {photo.id}")
+        logger.info(f"[Unmasking] SUCCESS: Photo {photo.id} regenerated for {user.username}.")
 
     except ConsentRequest.DoesNotExist:
-        logger.error(f"ConsentRequest {consent_request_id} not found")
-    except FileNotFoundError:
-        logger.error(f"Image files not found for consent request {consent_request_id}")
+        logger.error(f"[Unmasking] FAILED: ConsentRequest {consent_request_id} not found.")
+    except Photo.DoesNotExist:
+        logger.error(f"[Unmasking] FAILED: Photo not found for request {consent_request_id}.")
     except Exception as e:
-        logger.error(f"Error unmasking face: {str(e)}")
+        logger.error(f"[Unmasking] FAILED: An unexpected error occurred for request {consent_request_id}. Error: {e}", exc_info=True)

@@ -1,117 +1,373 @@
-# Unmask
 
-**The Social Network Built on Consent.**
+# Unmask - Privacy-First Social Media
 
-This is the official repository for the professional refactor of the "Facial Recognition-Powered Social Media for User Photo Privacy" project. This version is being built following modern, secure, and scalable software engineering practices.
 
-## Core Idea
+**Reveal on Your Terms**
 
-[cite_start]A social media platform that uses facial recognition to detect individuals in uploaded photos[cite: 11]. [cite_start]It will mask the faces of all identified users by default and send a notification to request their approval[cite: 11]. [cite_start]A user's face is only unmasked after they provide explicit consent[cite: 11, 16].
+A consent-driven social media platform that puts users in control of their digital identity. Using facial recognition technology, Unmask automatically masks faces in photos and requires explicit approval before revealing them.
 
-## Tech Stack
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11+-green.svg)
+![Django](https://img.shields.io/badge/django-4.2+-green.svg)
+![Next.js](https://img.shields.io/badge/next.js-15.4+-black.svg)
 
-- **Backend:** Python 3.11+ with Django & Django REST Framework
-- [cite_start]**Database:** postgreSQL [cite: 113]
-- **Frontend (User App):** React (or Next.js)
-- **Deployment:** Docker & Google Cloud Run
+---
 
-## Getting Started (Development)
+## 🎯 Core Concept
 
-### **Part 1: Prerequisites**
+Traditional social media platforms share photos of you without your permission. **Unmask flips this model:**
 
-Before you begin, ensure you have the following software installed on your system:
+1. 📸 Someone uploads a photo with you in it
+2. 🔍 Facial recognition automatically detects your face
+3. 🚫 Your face is **masked by default**
+4. 📬 You receive a consent request notification
+5. ✅ You approve or deny - **you're in control**
+6. 👤 Your face is unmasked only after you approve
 
-1.  **Python (3.11+):** The backend is built with Python. You can download it from [python.org](https://www.python.org/downloads/).
-2.  **Node.js (18.x or newer):** The frontend is a Next.js application. You can download it from [nodejs.org](https://nodejs.org/).
-3.  **PostgreSQL:** This is our database. You can download it from [postgresql.org](https://www.postgresql.org/download/).
-    * During installation, you will be asked to set a password for the default `postgres` user. **Remember this password.**
-4.  **Git:** To clone the project repository. You can get it from [git-scm.com](https://git-scm.com/downloads).
+**Your face, your choice, your consent.**
 
-### **Part 2: Backend Setup (Django API)**
+---
 
-Follow these steps in your terminal.
+## ✨ Key Features
 
-**1. Clone the Repository**
-```bash
-git clone <your-repository-url>
-cd <repository-folder-name>/backend
+### 🛡️ Privacy First
+- **Automatic face masking** - All detected faces are masked until consent is given
+- **Granular consent control** - Review each photo individually before approval
+- **Privacy modes** - Choose between "Require Consent" (default) or "Public" sharing
+
+### 🎨 Modern Social Experience
+- Photo sharing with filters and editing
+- Like and comment on posts
+- Real-time consent request notifications
+- User profiles and activity feeds
+- Stories/moments feature
+
+### 🔐 Security & Performance
+- JWT-based authentication
+- Pre-computed face encodings for fast recognition
+- Role-based access control
+- Comprehensive audit logging
+
+---
+
+## 🏗️ Architecture
+
+### Backend (Django REST Framework)
+```
+backend/
+├── core/           # Project configuration
+├── users/          # User authentication & face encoding
+├── photos/         # Photo upload, processing & consent workflow
+└── interactions/   # Likes, comments, social features
 ```
 
-**2. Create and Activate a Virtual Environment**
-This isolates the project's Python dependencies.
+**Key Technologies:**
+- Python 3.11+
+- Django 4.2 & Django REST Framework
+- PostgreSQL database
+- face_recognition library (dlib)
+- JWT authentication
+
+### Frontend (Next.js)
+```
+frontend/
+├── src/
+│   ├── app/              # Next.js pages (App Router)
+│   ├── components/       # React components
+│   ├── context/          # Auth & state management
+│   └── lib/              # API client & utilities
+```
+
+**Key Technologies:**
+- React 19 & Next.js 15.4
+- Tailwind CSS v4
+- Axios for API communication
+- Client-side routing
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- **Python 3.11+** - [Download](https://www.python.org/downloads/)
+- **Node.js 18+** - [Download](https://nodejs.org/)
+- **PostgreSQL 14+** - [Download](https://www.postgresql.org/download/)
+- **Git** - [Download](https://git-scm.com/downloads)
+
+### 1️⃣ Clone the Repository
+
 ```bash
-# Create the virtual environment
+git clone https://github.com/yourusername/unmask.git
+cd unmask
+```
+
+### 2️⃣ Backend Setup
+
+#### Create Virtual Environment
+```bash
+cd backend
 python -m venv venv
 
-# Activate it (on Windows)
+# Windows
 venv\Scripts\activate
 
-# Activate it (on macOS/Linux)
+# macOS/Linux
 source venv/bin/activate
 ```
-You should see `(venv)` at the beginning of your terminal prompt.
 
-**3. Install Dependencies**
+#### Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
-This will install Django, Django REST Framework, psycopg2-binary, and all other required packages.
 
-**4. Set Up the PostgreSQL Database**
-* Open the `psql` command-line tool or a GUI tool like pgAdmin.
-* Create a new user and a new database for the project. **Run these SQL commands:**
-    ```sql
-    CREATE USER secuser WITH PASSWORD 'mainproject';
-    CREATE DATABASE sec_ur_privacy OWNER secuser;
-    ```
-    *(These credentials match what's in the `settings.py` file. You can change them, but you'll need to update the settings file accordingly.)*
+#### Configure Environment Variables
 
-**5. Run Database Migrations**
-This command creates all the necessary tables in your new database.
+Create a `.env` file in the `backend/` directory:
+
+```env
+# Django
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database
+DB_NAME=unmask_db
+DB_USER=unmask_user
+DB_PASSWORD=your-secure-password
+DB_HOST=localhost
+DB_PORT=5432
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:3000
+```
+
+#### Set Up PostgreSQL Database
+
+```bash
+# Open PostgreSQL prompt
+psql -U postgres
+
+# Create database and user
+CREATE DATABASE unmask_db;
+CREATE USER unmask_user WITH PASSWORD 'your-secure-password';
+ALTER ROLE unmask_user SET client_encoding TO 'utf8';
+ALTER ROLE unmask_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE unmask_user SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE unmask_db TO unmask_user;
+\q
+```
+
+#### Run Migrations
+
 ```bash
 python manage.py migrate
 ```
 
-**6. Create a Superuser (Admin Account)**
-This account is for accessing the Django admin interface.
+#### Create Superuser
+
 ```bash
 python manage.py createsuperuser
 ```
-Follow the prompts to create a username, email, and password.
 
-**7. Run the Backend Server**
+#### Start Backend Server
+
 ```bash
 python manage.py runserver
 ```
-By default, the backend API will now be running at **`http://127.0.0.1:8000/`**. Keep this terminal window open.
 
-### **Part 3: Frontend Setup (Next.js App)**
+Backend API will be available at **http://127.0.0.1:8000/**
 
-Open a **new, separate terminal window** for these steps.
+---
 
-**1. Navigate to the Frontend Directory**
+### 3️⃣ Frontend Setup
+
+Open a **new terminal window**:
+
 ```bash
-cd <repository-folder-name>/frontend
+cd frontend
 ```
 
-**2. Install Dependencies**
+#### Install Dependencies
 ```bash
 npm install
 ```
-This will install React, Next.js, Axios, Tailwind CSS, and all other required packages from `package.json`.
 
-**3. Run the Frontend Development Server**
+#### Configure Environment Variables
+
+Create a `.env.local` file in the `frontend/` directory:
+
+```env
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+```
+
+#### Start Development Server
+
 ```bash
 npm run dev
 ```
-The frontend application will now be running at **`http://localhost:3000/`**.
 
-### **Part 4: You're All Set!**
+Frontend will be available at **http://localhost:3000/**
 
-You can now open your web browser and navigate to **`http://localhost:3000/`**.
+---
 
-* The Next.js app will load.
-* You can register a new user or log in.
-* The frontend will automatically make API calls to your Django backend running on port 8000.
+## 🎮 Using the Application
 
-To stop the servers, go to each terminal window and press `Ctrl + C`.
+### First Time Setup
+
+1. **Navigate to** http://localhost:3000
+2. **Register** a new account with:
+   - Username
+   - Email
+   - Password
+   - **Profile picture** (required for face recognition)
+3. **Upload** your first photo
+4. **Experience** the consent workflow
+
+### Key Workflows
+
+#### Uploading Photos
+1. Click the **Upload** button (+ icon)
+2. Select an image from your device
+3. Add caption, location, tags (optional)
+4. Apply filters if desired
+5. Click **Share Post**
+
+#### Managing Consent Requests
+1. Navigate to **Consent** tab
+2. Review pending requests
+3. **Approve** or **Deny** each request
+4. View history of approved/denied requests
+
+#### Privacy Settings
+1. Go to **Settings**
+2. Choose your face sharing mode:
+   - **Require Consent** (recommended) - Review each photo
+   - **Public** - Automatically unmask in all photos
+
+---
+
+## 🔧 Development
+
+### Useful Commands
+
+#### Backend
+```bash
+# Run migrations
+python manage.py migrate
+
+# Create migrations after model changes
+python manage.py makemigrations
+
+# Create superuser for admin access
+python manage.py createsuperuser
+
+# Access Django admin
+# Visit: http://127.0.0.1:8000/admin/
+
+# Compute face encodings for all users
+python manage.py compute_face_encodings --all
+
+# Clean test data (development only!)
+python cleanup_script.py
+```
+
+#### Frontend
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Lint code
+npm run lint
+```
+
+### API Documentation
+
+Once the backend is running, visit:
+- **Swagger UI**: http://127.0.0.1:8000/api/docs/
+- **ReDoc**: http://127.0.0.1:8000/api/redoc/
+
+### Key API Endpoints
+
+```
+POST   /api/token/              # Obtain JWT token
+POST   /api/token/refresh/      # Refresh JWT token
+GET    /api/users/              # List users (needs security fix)
+POST   /api/users/              # Register new user
+GET    /api/photos/             # List photos (feed)
+POST   /api/photos/             # Upload new photo
+GET    /api/consent-requests/   # List consent requests
+PATCH  /api/consent-requests/{id}/ # Update consent status
+POST   /api/likes/              # Like a photo
+POST   /api/comments/           # Comment on a photo
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Code Style
+
+- **Backend**: Follow PEP 8 guidelines
+- **Frontend**: Use ESLint configuration provided
+- **Commits**: Use conventional commits format
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👥 Authors
+
+- **Shinas Om** [GitHub](https://github.com/Shinasom) [Linkedin](https://www.linkedin.com/in/shinasom/)
+  
+
+---
+
+## 🙏 Acknowledgments
+
+- **face_recognition** library by Adam Geitgey
+- **Next.js** team for the amazing framework
+- **Django REST Framework** for the powerful API toolkit
+- **Tailwind CSS** for the utility-first CSS framework
+- All contributors and testers
+
+---
+
+
+## 📊 Project Status
+
+- **Development Status**: Alpha
+- **Current Version**: 0.1.0
+- **Last Updated**: November 2025
+- **Stability**: Experimental - Not ready for production
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ for a more private internet</strong>
+</p>
+
+<p align="center">
+  <a href="#-core-concept">Core Concept</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-using-the-application">Usage</a> •
+  <a href="#-contributing">Contributing</a>
+</p>

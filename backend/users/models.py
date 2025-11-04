@@ -26,7 +26,34 @@ class CustomUser(AbstractUser):
         default='PENDING',
         help_text="Status of face encoding extraction"
     )
+    class FaceSharingMode(models.TextChoices):
+        REQUIRE_CONSENT = 'REQUIRE_CONSENT', 'Require Consent'
+        PUBLIC = 'PUBLIC', 'Public (Auto-unmask)'
+
+    bio = models.TextField(blank=True)
+    profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     
+    face_encoding = models.JSONField(null=True, blank=True, help_text="128-dimensional face encoding vector")
+    
+    encoding_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Pending'),
+            ('SUCCESS', 'Success'),
+            ('NO_FACE', 'No Face Found'),
+            ('ERROR', 'Error'),
+        ],
+        default='PENDING',
+        help_text="Status of face encoding extraction"
+    )
+
+    # This new field will store the user's privacy preference
+    face_sharing_mode = models.CharField(
+        max_length=20,
+        choices=FaceSharingMode.choices,
+        default=FaceSharingMode.REQUIRE_CONSENT,
+        help_text="User's preference for face sharing"
+    )    
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name='groups',
